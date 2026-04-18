@@ -95,20 +95,22 @@ export default function Home() {
     setView('home')
   }
 
-  const renderDots = () => (
-    <div className="flex gap-2">
-      {questions.map((_, i) => (
-        <div
-          key={i}
-          className={`dot ${
-            i === currentQuestion ? 'dot-current' :
-            answers[i] === true ? 'dot-correct' :
-            answers[i] === false ? 'dot-wrong' : 'bg-border'
-          }`}
-        />
-      ))}
-    </div>
-  )
+  const renderDots = () => {
+    return (
+      <div className="flex gap-2">
+        {questions.map((_, i) => (
+          <div
+            key={i}
+            className={`dot ${
+              i === currentQuestion ? 'dot-current' :
+              answers[i] === true ? 'dot-correct' :
+              answers[i] === false ? 'dot-wrong' : 'bg-border'
+            }`}
+          />
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen relative">
