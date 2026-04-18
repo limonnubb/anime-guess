@@ -3,16 +3,34 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/store/gameStore'
-import { animeQuotes } from '@/data/anime'
 
 type View = 'home' | 'game' | 'profile' | 'ratings'
+
+function Dots({ current, answers }: { current: number, answers: boolean[] }) {
+  return (
+    <div className="flex gap-2">
+      {answers.map((_, i) => (
+        <div
+          key={i}
+          style={{
+            width: '12px',
+            height: '12px',
+            borderRadius: '50%',
+            border: i === current ? '1px solid #f43f5e' : answers[i] ? '1px solid #10b981' : answers[i] === false ? '1px solid #ef4444' : '1px solid #1e1e2e',
+            background: i === current ? 'rgba(244,63,94,0.1)' : answers[i] ? 'rgba(16,185,129,0.1)' : answers[i] === false ? 'rgba(239,68,68,0.1)' : 'transparent'
+          }}
+        />
+      ))}
+    </div>
+  )
+}
 
 export default function Home() {
   const [view, setView] = useState<View>('home')
   const [answer, setAnswer] = useState('')
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [showResult, setShowResult] = useState(false)
-  const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false)
+  const [lastCorrect, setLastCorrect] = useState(false)
   const [showEndModal, setShowEndModal] = useState(false)
   const [hint, setHint] = useState<string | null>(null)
   const [usernameInput, setUsernameInput] = useState('')
@@ -29,8 +47,8 @@ export default function Home() {
     }
   }, [toast])
 
-  const showToast = (message: string, type: 'success' | 'error') => {
-    setToast({ message, type })
+  const showToast = (msg: string, type: 'success' | 'error') => {
+    setToast({ message: msg, type })
   }
 
   const handleStartGame = () => {
@@ -41,13 +59,9 @@ export default function Home() {
     setShowResult(false)
     setAnswer('')
     setHint(null)
-    setLastAnswerCorrect(false)
+    setLastCorrect(false)
     store.startGame('all')
     setView('game')
-  }
-
-  const handleAnswerChange = (value: string) => {
-    setAnswer(value)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -56,9 +70,8 @@ export default function Home() {
       showToast('Введите название!', 'error')
       return
     }
-    
     const correct = store.answerQuestion(answer)
-    setLastAnswerCorrect(correct)
+    setLastCorrect(correct)
     setShowResult(true)
     setHint(null)
   }
@@ -80,7 +93,7 @@ export default function Home() {
     setShowResult(false)
     setAnswer('')
     setHint(null)
-    setLastAnswerCorrect(false)
+    setLastCorrect(false)
     store.startGame('all')
   }
 
@@ -95,172 +108,149 @@ export default function Home() {
     setView('home')
   }
 
-  const renderDots = () => {
-    return (
-      <div className="flex gap-2">
-        {questions.map((_, i) => (
-          <div
-            key={i}
-            className={`dot ${
-              i === currentQuestion ? 'dot-current' :
-              answers[i] === true ? 'dot-correct' :
-              answers[i] === false ? 'dot-wrong' : 'bg-border'
-            }`}
-          />
-        ))}
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen relative">
-      <div className="orbs">
-        <div className="orb orb-1" />
-        <div className="orb orb-2" />
+    <div style={{ minHeight: '100vh', position: 'relative' }}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', width: '500px', height: '500px', borderRadius: '50%', filter: 'blur(100px)', opacity: 0.28, background: 'radial-gradient(circle, #f43f5e, transparent 70%)', top: '-10%', left: '-10%' }} />
+        <div style={{ position: 'absolute', width: '400px', height: '400px', borderRadius: '50%', filter: 'blur(100px)', opacity: 0.28, background: 'radial-gradient(circle, #8b5cf6, transparent 70%)', bottom: '-10%', right: '-10%' }} />
       </div>
 
-      <div className="relative z-10 pb-10">
-        <div className="flex items-center justify-between py-4 px-4">
+      <div style={{ position: 'relative', zIndex: 10, paddingBottom: '2.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem' }}>
           <motion.h1 
             whileTap={{ scale: 0.95 }}
             onClick={() => setView('home')}
-            className="text-xl font-bold text-accent tracking-wider cursor-pointer"
+            style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f43f5e', letterSpacing: '0.1em', cursor: 'pointer' }}
           >
             ANIME QUOTE
           </motion.h1>
           {store.username && (
-            <nav className="flex gap-3 text-sm">
-              <button onClick={() => setView('ratings')} className="text-muted hover:text-text">Рейтинг</button>
-              <button onClick={() => setView('profile')} className="text-muted hover:text-text">Профиль</button>
+            <nav style={{ display: 'flex', gap: '0.75rem', fontSize: '0.875rem' }}>
+              <button onClick={() => setView('ratings')} style={{ color: '#6b6b80' }}>Рейтинг</button>
+              <button onClick={() => setView('profile')} style={{ color: '#6b6b80' }}>Профиль</button>
             </nav>
           )}
         </div>
-        <div className="max-w-md mx-auto px-4">
+        <div style={{ maxWidth: '28rem', margin: '0 auto', padding: '0 1rem' }}>
 
         <AnimatePresence mode="wait">
           {view === 'home' && (
             <motion.div
-              key="home"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              <section className="text-center py-8">
-                <h2 className="text-4xl font-black tracking-wider text-accent">
+              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                <h2 style={{ fontSize: '2.25rem', fontWeight: 900, letterSpacing: '0.1em', color: '#f43f5e' }}>
                   ANIME QUOTE
                 </h2>
-                <p className="text-muted mt-3">Угадай аниме по цитате</p>
-              </section>
+                <p style={{ color: '#6b6b80', marginTop: '0.75rem' }}>Угадай аниме по цитате</p>
+              </div>
 
-              <section>
-                <h3 className="text-muted text-xs uppercase tracking-widest mb-4 text-center">Играть</h3>
-                <div className="flex flex-col gap-3">
+              <div>
+                <h3 style={{ color: '#6b6b80', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', textAlign: 'center' }}>Играть</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {!store.username ? (
-                    <div className="space-y-3">
-                      <input
-                        type="text"
-                        value={usernameInput}
-                        onChange={(e) => setUsernameInput(e.target.value)}
-                        placeholder="Ваше имя (мин. 2 символа)"
-                        className="input w-full"
-                        minLength={2}
-                      />
-                      <button
-                        onClick={() => {
-                          if (usernameInput.trim().length >= 2) {
-                            store.setUsername(usernameInput.trim())
-                          } else {
-                            showToast('Минимум 2 символа!', 'error')
-                          }
-                        }}
-                        className="btn btn-outline w-full"
-                      >
-                        Играть
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 p-3 bg-card rounded-xl">
-                      <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-lg">
-                        {store.username[0].toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-bold">{store.username}</div>
-                      </div>
-                      <button
-                        onClick={() => store.logout()}
-                        className="text-muted hover:text-err text-sm"
-                      >
-                        Выйти
-                      </button>
-                    </div>
-                  )}
-                  {store.username && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <input
+                      type="text"
+                      value={usernameInput}
+                      onChange={(e) => setUsernameInput(e.target.value)}
+                      placeholder="Ваше имя"
+                      style={{ width: '100%', padding: '0.75rem 1rem', background: '#16161f', border: '1px solid #1e1e2e', color: '#eaeaf0', borderRadius: '0.75rem' }}
+                    />
                     <button
-                      onClick={handleStartGame}
-                      className="btn btn-primary w-full"
+                      onClick={() => {
+                        if (usernameInput.trim().length >= 2) {
+                          store.setUsername(usernameInput.trim())
+                        } else {
+                          showToast('Минимум 2 символа!', 'error')
+                        }
+                      }}
+                      style={{ background: '#111119', border: '1px solid #1e1e2e', padding: '0.75rem 1rem', borderRadius: '0.75rem', fontWeight: 700, color: '#eaeaf0' }}
                     >
-                      ИГРАТЬ
+                      Играть
                     </button>
-                  )}
-                </div>
-              </section>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#111119', borderRadius: '0.75rem', border: '1px solid #1e1e2e' }}>
+                    <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: 'rgba(244,63,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.125rem' }}>
+                      {store.username[0].toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700 }}>{store.username}</div>
+                    </div>
+                    <button
+                      onClick={() => store.logout()}
+                      style={{ color: '#ef4444', fontSize: '0.875rem' }}
+                    >
+                      Выйти
+                    </button>
+                  </div>
+                )}
+                {store.username && (
+                  <button
+                    onClick={handleStartGame}
+                    style={{ background: '#f43f5e', color: '#fff', padding: '0.75rem 1rem', borderRadius: '0.75rem', fontWeight: 700 }}
+                  >
+                    ИГРАТЬ
+                  </button>
+                )}
+              </div>
             </motion.div>
           )}
 
           {view === 'game' && isPlaying && currentAnime && !showEndModal && (
             <motion.div
-              key="game"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <div className="flex items-center justify-between mb-4">
-                <button onClick={() => { store.resetGame(); setView('home') }} className="text-muted hover:text-text">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <button onClick={() => { store.resetGame(); setView('home') }} style={{ color: '#6b6b80' }}>
                   ← Назад
                 </button>
-                {renderDots()}
-                <div className="text-accent font-bold">⭐ {score}</div>
+                <Dots current={currentQuestion} answers={answers} />
+                <div style={{ color: '#f43f5e', fontWeight: 700 }}>⭐ {score}</div>
               </div>
 
-              <div className="card text-center mb-4">
-                <div className="text-3xl mb-2">💬</div>
-                <div className="text-xl italic mb-2">"{currentAnime.quote}"</div>
-                <div className="text-xs text-muted uppercase tracking-widest">— персонаж</div>
-                <div className="text-accent text-sm mt-2">⭐ {Math.max(2, 5 - hintsUsed)} баллов</div>
+              <div style={{ background: '#111119', border: '1px solid #1e1e2e', borderRadius: '1rem', padding: '1.25rem', textAlign: 'center', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '1.875rem', marginBottom: '0.5rem' }}>💬</div>
+                <div style={{ fontSize: '1.25rem', fontStyle: 'italic', marginBottom: '0.5rem' }}>"{currentAnime.quote}"</div>
+                <div style={{ color: '#6b6b80', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>— персонаж</div>
+                <div style={{ color: '#f43f5e', fontSize: '0.875rem', marginTop: '0.5rem' }}>⭐ {Math.max(2, 5 - hintsUsed)} баллов</div>
               </div>
 
-              <AnimatePresence>
-                {hint && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-3 px-4 py-2 bg-accent/10 border border-accent/30 rounded-lg text-accent text-sm"
-                  >
-                    💡 {hint}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {hint && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{ marginBottom: '0.75rem', padding: '0.5rem 1rem', background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: '0.5rem', color: '#f43f5e', fontSize: '0.875rem' }}
+                >
+                  💡 {hint}
+                </motion.div>
+              )}
 
               {!showResult ? (
-                <form onSubmit={handleSubmit} className="space-y-3">
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <input
                     type="text"
                     value={answer}
-                    onChange={(e) => handleAnswerChange(e.target.value)}
+                    onChange={(e) => setAnswer(e.target.value)}
                     placeholder="Название аниме"
-                    className="input w-full"
+                    style={{ width: '100%', padding: '0.75rem 1rem', background: '#16161f', border: '1px solid #1e1e2e', color: '#eaeaf0', borderRadius: '0.75rem' }}
                     autoFocus
                   />
-                  <div className="flex gap-2">
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
                       type="button"
                       onClick={handleUseHint}
                       disabled={hintsUsed >= 3}
-                      className="btn btn-secondary flex-1 disabled:opacity-50"
+                      style={{ background: '#111119', border: '1px solid #1e1e2e', padding: '0.75rem 1rem', borderRadius: '0.75rem', fontWeight: 700, color: hintsUsed >= 3 ? '#6b6b80' : '#6b6b80', flex: 1, opacity: hintsUsed >= 3 ? 0.5 : 1 }}
                     >
                       💡 Подсказка {hintsUsed}/3
                     </button>
-                    <button type="submit" className="btn btn-primary flex-1.5 text-base">
+                    <button type="submit" style={{ background: '#f43f5e', color: '#fff', padding: '0.75rem 1rem', borderRadius: '0.75rem', fontWeight: 700, flex: 1.5 }}>
                       УГАДАТЬ
                     </button>
                   </div>
@@ -268,11 +258,11 @@ export default function Home() {
                     type="button"
                     onClick={() => {
                       store.answerQuestion('')
-                      setLastAnswerCorrect(false)
+                      setLastCorrect(false)
                       setShowResult(true)
                       setHint(null)
                     }}
-                    className="btn btn-outline w-full text-sm mt-2"
+                    style={{ background: '#111119', border: '1px solid #1e1e2e', padding: '0.5rem 1rem', borderRadius: '0.75rem', fontWeight: 700, color: '#eaeaf0', fontSize: '0.875rem' }}
                   >
                     Пропустить →
                   </button>
@@ -281,22 +271,20 @@ export default function Home() {
                 <motion.div
                   initial={{ scale: 0.9 }}
                   animate={{ scale: 1 }}
-                  className="card text-center"
+                  style={{ background: '#111119', border: '1px solid #1e1e2e', borderRadius: '1rem', padding: '1.25rem', textAlign: 'center' }}
                 >
-                  <div className={`text-5xl mb-2 ${lastAnswerCorrect ? 'text-ok' : 'text-err'}`}>
-                    {lastAnswerCorrect ? '✓' : '✗'}
+                  <div style={{ fontSize: '3rem', marginBottom: '0.5rem', color: lastCorrect ? '#10b981' : '#ef4444' }}>
+                    {lastCorrect ? '✓' : '✗'}
                   </div>
-                  <div className={`font-bold mb-1 ${lastAnswerCorrect ? 'text-ok' : 'text-err'}`}>
-                    {lastAnswerCorrect ? 'Правильно!' : 'Не угадал'}
+                  <div style={{ fontWeight: 700, marginBottom: '0.25rem', color: lastCorrect ? '#10b981' : '#ef4444' }}>
+                    {lastCorrect ? 'Правильно!' : 'Не угадал'}
                   </div>
-                  <div className="text-lg font-bold text-accent mb-1">{currentAnime.name}</div>
-                  <div className="text-2xl mb-4">{currentAnime.emoji}</div>
-                  <div className={`inline-block px-4 py-1 rounded-full text-sm font-bold mb-4 ${
-                    lastAnswerCorrect ? 'bg-ok/20 text-ok' : 'bg-err/20 text-err'
-                  }`}>
-                    {lastAnswerCorrect ? `+${Math.max(2, 5 - hintsUsed)} баллов` : '0 баллов'}
+                  <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#f43f5e', marginBottom: '0.25rem' }}>{currentAnime.name}</div>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>{currentAnime.emoji}</div>
+                  <div style={{ display: 'inline-block', padding: '0.25rem 1rem', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: 700, marginBottom: '1rem', background: lastCorrect ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', color: lastCorrect ? '#10b981' : '#ef4444' }}>
+                    {lastCorrect ? `+${Math.max(2, 5 - hintsUsed)} баллов` : '0 баллов'}
                   </div>
-                  <button onClick={currentQuestion < 4 ? handleNext : handleEndGame} className="btn btn-primary w-full">
+                  <button onClick={currentQuestion < 4 ? handleNext : handleEndGame} style={{ background: '#f43f5e', color: '#fff', padding: '0.75rem 1rem', borderRadius: '0.75rem', fontWeight: 700, width: '100%' }}>
                     {currentQuestion < 4 ? 'СЛЕДУЮЩИЙ →' : 'РЕЗУЛЬТАТЫ'}
                   </button>
                 </motion.div>
@@ -310,36 +298,36 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
-              <button onClick={() => setView('home')} className="text-muted hover:text-text mb-4">
+              <button onClick={() => setView('home')} style={{ color: '#6b6b80', marginBottom: '1rem' }}>
                 ← Назад
               </button>
 
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center text-2xl">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ width: '4rem', height: '4rem', borderRadius: '50%', background: 'rgba(244,63,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
                   {store.username ? store.username[0].toUpperCase() : '?'}
                 </div>
                 <div>
-                  <div className="font-bold text-xl">{store.username || 'Игрок'}</div>
+                  <div style={{ fontWeight: 700, fontSize: '1.25rem' }}>{store.username || 'Игрок'}</div>
                 </div>
               </div>
 
-              <div className="card text-center mb-6">
-                <div className="text-3xl font-black text-accent">{store.bestScore}</div>
-                <div className="text-muted text-xs">Лучший счёт</div>
+              <div style={{ background: '#111119', border: '1px solid #1e1e2e', borderRadius: '1rem', padding: '1.25rem', textAlign: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '1.875rem', fontWeight: 900, color: '#f43f5e' }}>{store.bestScore}</div>
+                <div style={{ color: '#6b6b80', fontSize: '0.75rem' }}>Лучший счёт</div>
               </div>
 
-              <div className="text-center text-muted text-sm mb-4">{store.gamesPlayed} игр сыграно</div>
+              <div style={{ textAlign: 'center', color: '#6b6b80', fontSize: '0.875rem', marginBottom: '1rem' }}>{store.gamesPlayed} игр сыграно</div>
 
-              <h3 className="text-muted text-xs uppercase tracking-widest mb-4">История игр</h3>
+              <h3 style={{ color: '#6b6b80', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem' }}>История игр</h3>
               {store.history.length === 0 ? (
-                <div className="text-center text-muted py-8">Нет сыгранных игр</div>
+                <div style={{ textAlign: 'center', color: '#6b6b80', padding: '2rem 0' }}>Нет сыгранных игр</div>
               ) : (
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {store.history.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-card rounded-lg">
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#111119', borderRadius: '0.5rem' }}>
                       <div>
-                        <div className="font-bold text-accent">{item.score} баллов</div>
-                        <div className="text-muted text-xs">Угадано {item.correct}/5 · {item.date}</div>
+                        <div style={{ fontWeight: 700, color: '#f43f5e' }}>{item.score} баллов</div>
+                        <div style={{ color: '#6b6b80', fontSize: '0.75rem' }}>Угадано {item.correct}/5 · {item.date}</div>
                       </div>
                     </div>
                   ))}
@@ -348,7 +336,7 @@ export default function Home() {
 
               <button
                 onClick={() => store.setUsername('')}
-                className="btn btn-outline w-full mt-6 text-err"
+                style={{ background: '#111119', border: '1px solid #1e1e2e', padding: '0.75rem 1rem', borderRadius: '0.75rem', fontWeight: 700, color: '#ef4444', width: '100%', marginTop: '1.5rem' }}
               >
                 Сменить имя
               </button>
@@ -361,35 +349,31 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
-              <button onClick={() => setView('home')} className="text-muted hover:text-text mb-4">
+              <button onClick={() => setView('home')} style={{ color: '#6b6b80', marginBottom: '1rem' }}>
                 ← Назад
               </button>
 
               {store.getLeaderboard('all').length === 0 ? (
-                <div className="text-center text-muted py-12">
-                  <div className="text-4xl mb-4">🎮</div>
+                <div style={{ textAlign: 'center', color: '#6b6b80', padding: '3rem 0' }}>
+                  <div style={{ fontSize: '2.25rem', marginBottom: '1rem' }}>🎮</div>
                   <p>Нет игроков в рейтинге</p>
-                  <p className="text-sm mt-2">Играйте, чтобы попасть в топ!</p>
+                  <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>Играйте, чтобы попасть в топ!</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {store.getLeaderboard('all').map((entry, i) => (
                     <div
                       key={i}
-                      className={`flex items-center gap-3 p-3 rounded-lg ${
-                        entry.isCurrentUser ? 'bg-accent/10 border border-accent/30' : 'bg-card'
-                      }`}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: '0.5rem', background: entry.isCurrentUser ? 'rgba(244,63,94,0.1)' : '#111119', border: entry.isCurrentUser ? '1px solid rgba(244,63,94,0.3)' : '1px solid #1e1e2e' }}
                     >
-                      <div className={`font-black w-6 ${
-                        i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-amber-600' : 'text-muted'
-                      }`}>
+                      <div style={{ fontWeight: 900, width: '1.5rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#d97706' : '#6b6b80' }}>
                         {i + 1}
                       </div>
-                      <div className="flex-1 font-bold">
+                      <div style={{ flex: 1, fontWeight: 700 }}>
                         {entry.name}
-                        {entry.isCurrentUser && <span className="text-accent ml-2">(Вы)</span>}
+                        {entry.isCurrentUser && <span style={{ color: '#f43f5e', marginLeft: '0.5rem' }}>(Вы)</span>}
                       </div>
-                      <div className="font-bold text-accent">
+                      <div style={{ fontWeight: 700, color: '#f43f5e' }}>
                         {entry.score}
                       </div>
                     </div>
@@ -407,7 +391,7 @@ export default function Home() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`toast ${toast.type === 'success' ? 'toast-success' : 'toast-error'}`}
+            style={{ position: 'fixed', top: '1.25rem', left: '50%', transform: 'translateX(-50%)', zIndex: 50, padding: '0.75rem 1.25rem', borderRadius: '0.75rem', fontWeight: 600, color: '#fff', background: toast.type === 'success' ? 'rgba(16,185,129,0.9)' : 'rgba(239,68,68,0.9)' }}
           >
             {toast.message}
           </motion.div>
@@ -420,27 +404,27 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="modal-overlay"
+            style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(4px)' }}
             onClick={handleGoHome}
           >
             <motion.div
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="modal text-center"
+              style={{ background: '#111119', border: '1px solid #1e1e2e', borderRadius: '1rem', padding: '1.5rem', maxWidth: '24rem', width: '100%', textAlign: 'center' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-6xl mb-4">🏆</div>
-              <h2 className="text-2xl font-black mb-2">ИГРА ЗАВЕРШЕНА</h2>
-              <div className="text-5xl font-black text-accent mb-4">{score}</div>
-              <div className="flex justify-center gap-8 mb-6 text-muted">
+              <div style={{ fontSize: '3.75rem', marginBottom: '1rem' }}>🏆</div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '0.5rem' }}>ИГРА ЗАВЕРШЕНА</h2>
+              <div style={{ fontSize: '3rem', fontWeight: 900, color: '#f43f5e', marginBottom: '1rem' }}>{score}</div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1.5rem', color: '#6b6b80' }}>
                 <div>✓ Угадано {answers.filter(a => a).length}</div>
                 <div>✗ Пропущено {answers.filter(a => !a).length}</div>
               </div>
-              <button onClick={handlePlayAgain} className="btn btn-primary w-full mb-3">
+              <button onClick={handlePlayAgain} style={{ background: '#f43f5e', color: '#fff', padding: '0.75rem 1rem', borderRadius: '0.75rem', fontWeight: 700, width: '100%', marginBottom: '0.75rem' }}>
                 Играть снова
               </button>
-              <button onClick={handleGoHome} className="btn btn-secondary w-full">
+              <button onClick={handleGoHome} style={{ background: '#111119', border: '1px solid #1e1e2e', padding: '0.75rem 1rem', borderRadius: '0.75rem', fontWeight: 700, color: '#6b6b80', width: '100%' }}>
                 В меню
               </button>
             </motion.div>
